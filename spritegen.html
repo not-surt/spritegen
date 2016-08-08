@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<!--
+/* This program is free software. It comes without any warranty, to
+* the extent permitted by applicable law. You can redistribute it
+* and/or modify it under the terms of the Do What The Fuck You Want
+* To Public License, Version 2, as published by Sam Hocevar. See
+* http://sam.zoy.org/wtfpl/COPYING for more details. */
+
+          DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
+                  Version 2, December 2004
+
+Copyright (C) 2004 Sam Hocevar <sam@hocevar.net>
+
+Everyone is permitted to copy and distribute verbatim or modified
+copies of this license document, and changing it is allowed as long
+as the name is changed.
+
+          DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
+  TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
+
+0. You just DO WHAT THE FUCK YOU WANT TO.
+-->
+<!--
+CREDITS
+-------
+vk - palettes, scale2x code
+surt - misc
+Arne - Arne's 16 Color Palette
+DawnBringer - DawnBringer's 16 Color Palette
+ptoing - Ptoing's Commodore 64 Palette
+-->
+<!--
+TODO
+----
+Scalers [X]
+Outlines
+Proper morphological operators
+downscalers - mean, mode, background excluding
+custom and shaped templates instead of falloff
+distance metrics
+non-square tiles
+Octave: render at increasind scale leaving some of the lower scale behind.
+-->
+<html>
+  <head>
+    <script type="application/javascript">
+      "use strict";
+
+      var viewW, viewH;
+      var backgroundColour;
+
+      var spriteGen;
+
+      var PIXEL_SIZE = 4;
+
+      function indexFromCoord(width, x, y) {
+        return y * width + x;
+      }
+
+      function ByteMap(width, height) {
+        Uint8Array.call(this, width * height);
+        this.width = width;
+        this.height = height;
+      }
+      ByteMap.prototype = Object.create(Uint8Array.prototype, {
+        set: function (x, y, value) { this[indexFromCoord(this.width, x, y)] = value; },
+        get: function (x, y) { return this[indexFromCoord(this.width, x, y)]; },
+      });
+
+      function LinearCongruentialGenerator(a, c, m) {
+        this.a = a;
+        this.c = c;
+        this.m = m;
+        this.seed = 0;
+      }
+      LinearCongruentialGenerator.prototype = {
+        _random: function() { return this.seed = (this.a * this.seed + this.c) % this.m; },
+        random: function() { return this._random() / (this.m - 1); },
+        reseed: function(seed) { this.seed = (isDefined(seed) ? seed : Date.now()) % this.m; },
+      };
+
+      var lcg0 = new LinearCongruentialGenerator(2147483629, 2147483587, Math.pow(2, 31) - 1);
+      var lcg1 = new LinearCongruentialGenerator(25214903917, 11, Math.pow(2, 48));
+      function random() { return (lcg0.random() + lcg1.random()) % 1; };
+      function randomReseed(seed) { lcg0.reseed(seed); lcg1.reseed(lcg0.random()); };
+
+      function errorHandler(msg, url, line) {
+        alert(msg + "\n" + url + "\n" + "Line: " + line);
+        var suppressErrorAlert = true;
+        return suppressErrorAlert;
+      }
+      window.onerror = errorHandler;
+
+      function arraycopy(dest, destStart, src, srcStart, len) {
+        for (var i = 0; i < len; ++i) {
+          dest[destStart + i] = src[srcStart + i];
+        }
+      }
+
+      function getPixel(data, x, y) {
+        if (x >= 0 && x < data.width && y >= 0 && y < data.height) {
+          var colour = new Array();
+          arraycopy(colour, 0, data.data, indexFromCoord(data.width * PIXEL_SIZE, x * PIXEL_SIZE, y), PIXEL_SIZE);
+          return colour;
+        }
+        throw "Pixel out of bounds: (" + x + ", " + y + ") of " + data.width + "x" + data.height;
+      }
+
+      function putPixel(data, x, y, colour) {
+        if (x >= 0 && x < data.width && y >= 0 && y < data.height) {
+          arraycopy(data.data, indexFromCoord(data.width * PIXEL_SIZE, x * PIXEL_SIZE, y), colour, 0, PIXEL_SIZE);
+        }
+      }
+
+      function coloursEqual(colour0, colour1) {
+        for (var i = 0; i < PIXEL_SIZE; ++i) {
+          if (colour0[i] != colour1[i])
+            return false;
+        }
+        return true;
+      }
+
+      function rgbToRgba(colour) {
+        return [colour[0], colour[1], colour[2], 255];
+      }
+
+      function MyImageData(width, height) {
+        this.width = width;
+        this.height = height;
+        this.data = new Uint8ClampedArray(new ArrayBuffer(width * height * 4));
+      }
+      var buffer = new MyImageData(64, 64);
+
+      function colourCardinality(data) {
+        var colours = {};
+        for (var y = 0; y < data.height; y++) {
+          for (var x = 0; x < data.width; x++) {
+            var pixel = getPixel(data, x, y);
+            if (!isDefined(colours[pixel])) {
+              colours[pixel] = 1;
+            } else {
+              colours[pixel]++;
+            }
+          }
+        }
+        return colours;
+      }
+
+      function medianCut(data) {
+        function sorterRed(a, b) { return b[0] - a[0]; };
+        function sorterGreen(a, b) { return b[1] - a[1]; };
+        function sorterBlue(a, b) { return b[2] - a[2]; };
+        var colours = colourCardinality();
+        //var sortedRed =
+      }
+
+      function palettizeColour(colour, palette) {
+
+      }
+
+      function palettizeImage(palette, src, dest) {
+        for (var y = 0; y < src.height; y++) {
+          for (var x = 0; x < src.width; x++) {
+            putPixel(dest, x, y, palette[palettizeColour(getPixel(src, x, y), palette)]);
+          }
+        }
+      }
+
+      //function doInterval(s, d) { document.write("(" + s[0] + ", " + s[1] + ") => (" + d[0] + ", " + d[1] + ")<br />"); }
+
+      function interval(src, dest, data) {
+        //putpixel(data.data)
+      }
+
+      function resample1d(src, dest, func, data) {
+        var step = (src[1] - src[0]) / (dest[1] - dest[0]);
+        for (var d0 = dest[0], d1 = Math.floor(d0 + 1), s0 = src[0], s1 = s0 + (d1 - d0) * step; d1 < dest[1]; d0 = d1, d1++, s0 = s1, s1 += step) {
+          data.y0 = d0, data.y1 = d1;
+          func([s0, s1], [d0, d1], data);
+        }
+        data.y0 = d0, data.y1 = dest[1];
+        func([s0, src[1]], [d0, dest[1]], data);
+      }
+      //resample1d([0, 10], [0.5, 2.5], doInterval);//////////////////
+      //resample1d([0, 10], [1, 2]);//////////////////
+      
+      function resample2d(src, dest, func, data) {
+        resample1d([src[0][1], src[1][1]], [dest[0][1], dest[1][1]], function () { resample1d([src[0][0], src[1][0]], [dest[0][0], dest[1][0]], func, data); }, data);
+      }
+      //resample2d([[0, 0], [16, 8]], [[0, 10], [10, 15]], doInterval);////////////////////////
+      /*function resampleMean1d(src0, src1, dest0, dest1) {
+        for (var i0 = dest0, i1 = Math.floor(dest0 + 1); i1 < Math.floor(srcRect.x0); x = Math.floor(srcRect.x0)
+      }
+      
+      function scaleMean(src, srcRect, dest, destRect) {
+        //for (var x = srcRect.x0; x < Math.floor(srcRect.x0); x = Math.floor(srcRect.x0)
+      }*/
+
+      function rgbaToRgb(colour) {
+        return [colour[0], colour[1], colour[2]];
+      }
+
+      function scale2x(data, x, y)
+      {
+        var out = getPixel(data, x, y);
+        return [out, out, out, out];
+      }
+
+      function scale3x(data, x, y)
+      {
+        var out = getPixel(data, x, y);
+        return [out, out, out, out, out, out, out, out, out];
+      }
+
+      // A B C
+      // D E F  --> E0 E1
+      // G H I      E2 E3
+      function scaleEagle2x(data, x, y)
+      {
+        var A = getPixel(data, x > 0 ? x - 1 : 0, y > 0 ? y - 1 : 0);
+        var B = getPixel(data, x, y > 0 ? y - 1 : 0);
+        var C = getPixel(data, x < data.width - 1 ? x + 1 : data.width - 1, y > 0 ? y - 1 : 0);
+        var D = getPixel(data, x > 0 ? x - 1 : 0, y);
+        var E = getPixel(data, x, y);
+        var F = getPixel(data, x < data.width - 1 ? x + 1 : data.width - 1, y);
+        var G = getPixel(data, x > 0 ? x - 1 : 0, y < data.height - 1 ? y + 1 : data.height - 1);
+        var H = getPixel(data, x, y < data.height - 1 ? y + 1 : data.height - 1);
+        var I = getPixel(data, x < data.width - 1 ? x + 1 : data.width - 1, y < data.height - 1 ? y + 1 : data.height - 1);
+
+        return [
+          coloursEqual(A, B) && coloursEqual(A, D) ? A : E,
+          coloursEqual(C, B) && coloursEqual(C, F) ? C : E,
+          coloursEqual(G, H) && coloursEqual(G, D) ? G : E,
+          coloursEqual(I, F) && coloursEqual(I, H) ? I : E,
+        ];
+      }
+
+      // A B C      E0 E1 E2
+      // D E F  --> E3 E4 E5
+      // G H I      E6 E7 E8
+      function scaleEagle3x(data, x, y)
+      {
+        var A = getPixel(data, x > 0 ? x - 1 : 0, y > 0 ? y - 1 : 0);
+        var B = getPixel(data, x, y > 0 ? y - 1 : 0);
+        var C = getPixel(data, x < data.width - 1 ? x + 1 : data.width - 1, y > 0 ? y - 1 : 0);
+        var D = getPixel(data, x > 0 ? x - 1 : 0, y);
+        var E = getPixel(data, x, y);
+        var F = getPixel(data, x < data.width - 1 ? x + 1 : data.width - 1, y);
+        var G = getPixel(data, x > 0 ? x - 1 : 0, y < data.height - 1 ? y + 1 : data.height - 1);
+        var H = getPixel(data, x, y < data.height - 1 ? y + 1 : data.height - 1);
+        var I = getPixel(data, x < data.width - 1 ? x + 1 : data.width - 1, y < data.height - 1 ? y + 1 : data.height - 1);
+
+        return [
+          coloursEqual(A, D) && coloursEqual(A, B) ? A : E,
+          /*coloursEqual(B, A) && coloursEqual(B, C) ? B :*/ E,
+          coloursEqual(C, B) && coloursEqual(C, F) ? C : E,
+          /*coloursEqual(D, G) && coloursEqual(D, A) ? D :*/ E,
+          E,
+          /*coloursEqual(F, C) && coloursEqual(F, I) ? F :*/ E,
+          coloursEqual(G, H) && coloursEqual(G, D) ? G : E,
+          /*coloursEqual(H, I) && coloursEqual(H, G) ? H :*/ E,
+          coloursEqual(I, F) && coloursEqual(I, H) ? I : E,
+        ];
+      }
+
+      // A B C
+      // D E F  --> E0 E1
+      // G H I      E2 E3
+      function scaleScale2x(data, x, y)
+      {
+        var B = getPixel(data, x, y > 0 ? y - 1 : 0);
+        var D = getPixel(data, x > 0 ? x - 1 : 0, y);
+        var E = getPixel(data, x, y);
+        var F = getPixel(data, x < data.width - 1 ? x + 1 : data.width - 1, y);
+        var H = getPixel(data, x, y < data.height - 1 ? y + 1 : data.height - 1);
+
+        var out = [];
+
+        if (!coloursEqual(B, H) && !coloursEqual(D, F)) {
+          out[0] = coloursEqual(B, D) ? D : E;
+          out[1] = coloursEqual(B, F) ? F : E;
+          out[2] = coloursEqual(D, H) ? D : E;
+          out[3] = coloursEqual(H, F) ? F : E;
+        } else {
+          out[0] = E;
+          out[1] = E;
+          out[2] = E;
+          out[3] = E;
+        }
+        return out;
+      }
+
+      // A B C      E0 E1 E2
+      // D E F  --> E3 E4 E5
+      // G H I      E6 E7 E8
+      function scaleScale3x(data, x, y)
+      {
+        var A = getPixel(data, x > 0 ? x - 1 : 0, y > 0 ? y - 1 : 0);
+        var B = getPixel(data, x, y > 0 ? y - 1 : 0);
+        var C = getPixel(data, x < data.width - 1 ? x + 1 : data.width - 1, y > 0 ? y - 1 : 0);
+        var D = getPixel(data, x > 0 ? x - 1 : 0, y);
+        var E = getPixel(data, x, y);
+        var F = getPixel(data, x < data.width - 1 ? x + 1 : data.width - 1, y);
+        var G = getPixel(data, x > 0 ? x - 1 : 0, y < data.height - 1 ? y + 1 : data.height - 1);
+        var H = getPixel(data, x, y < data.height - 1 ? y + 1 : data.height - 1);
+        var I = getPixel(data, x < data.width - 1 ? x + 1 : data.width - 1, y < data.height - 1 ? y + 1 : data.height - 1);
+
+        var out = [];
+
+        if (!coloursEqual(B, H) && !coloursEqual(D, F)) {
+          out[0] = coloursEqual(D, B) ? D : E;
+          out[1] = (coloursEqual(D, B) && !coloursEqual(E, C)) || (coloursEqual(B, F) && !coloursEqual(E, A)) ? B : E;
+          out[2] = coloursEqual(B, F) ? F : E;
+          out[3] = (coloursEqual(D, B) && !coloursEqual(E, G)) || (coloursEqual(D, H) && !coloursEqual(E, A)) ? D : E;
+          out[4] = E;
+          out[5] = (coloursEqual(B, F) && !coloursEqual(E, I)) || (coloursEqual(H, F) && !coloursEqual(E, C)) ? F : E;
+          out[6] = coloursEqual(D, H) ? D : E;
+          out[7] = (coloursEqual(D, H) && !coloursEqual(E, I)) || (coloursEqual(H, F) && !coloursEqual(E, G)) ? H : E;
+          out[8] = coloursEqual(H, F) ? F : E;
+        } else {
+          out[0] = E;
+          out[1] = E;
+          out[2] = E;
+          out[3] = E;
+          out[4] = E;
+          out[5] = E;
+          out[6] = E;
+          out[7] = E;
+          out[8] = E;
+        }
+        return out;
+      }
+
+      function getScale() { return scalers[values["scaler0"]].factor * scalers[values["scaler1"]].factor /** values["iterations"]*/; }
+
+      // wide, tall?
+      var scalers = {
+        none: { label: "None", factor: 1 },
+        "2x": { label: "2x", factor: 2, func: scale2x },
+        "3x": { label: "3x", factor: 3, func: scale3x },
+        eagle2x: { label: "Eagle2x", factor: 2, func: scaleEagle2x },
+        eagle3x: { label: "Eagle3x", factor: 3, func: scaleEagle3x },
+        scale2x: { label: "Scale2x", factor: 2, func: scaleScale2x },
+        scale3x: { label: "Scale3x", factor: 3, func: scaleScale3x },
+        /*"2xsai": { label: "2xSaI", factor: 2 },
+        supereagle: { label: "Super Eagle", factor: 2 },
+        super2xsai: { label: "Super 2xSaI", factor: 2 },
+        hq2x: { label: "hq2x", factor: 2 },
+        hq3x: { label: "hq3x", factor: 3 },
+        hq4x: { label: "hq4x", factor: 4 },*/
+      }
+      
+      function scale(src, dest, scaler) {
+        for (var y = 0; y < src.height; y++) {
+          for (var x = 0; x < src.width; x++) {
+            var scaled = scaler.func(src, x, y);
+            var i = 0;
+            for (var yy = 0; yy < scaler.factor; yy++) {
+              for (var xx = 0; xx < scaler.factor; xx++) {
+                putPixel(dest, x * scaler.factor + xx, y * scaler.factor + yy, scaled[i]);
+                i++;
+              }
+            }
+          }
+        }
+      }
+
+      var falloffs = {
+        constant: { label: "Constant", func: function(x) {
+          return 1.0;
+        }},
+        linear: { label: "Linear", func: function(x) {
+          return Math.max(0, Math.min(x, 1.0));
+        }},
+        cosine: { label: "Cosine", func: function(x) {
+          return (1.0 - Math.cos(x * Math.PI)) * 0.5;
+        }},
+        spherical: { label: "Spherical", func: function(x) {
+          return Math.sqrt(1.0 - ((1.0 - x) * (1.0 - x)));
+        }},
+      }
+
+      function lerp(start, end, pos) {
+        return start + (end - start) * pos;
+      }
+
+      function limit(value, min, max) {
+        return value < min ? min : value > max ? max : value;
+      }
+
+      function scaleShift(scale, shift, value) {
+        // y(x) = A*x + B
+        return scale * value + shift;
+      }
+
+      function bias(bias, value) {
+        // y(x) = x^(log(B)/log(0.5))
+        return Math.pow(value, Math.log(bias) / Math.log(0.5));
+      }
+
+      function gain(gain, value) {
+        // y(x) =    Bias(2*x, 1-G)/2        if x<0.5
+        //           1-Bias(2-2*x, 1-G)/2    if x>0.5
+        return value <= 0.5 ? bias(2 * value, 1 - gain) / 2 : 1 - bias(2 - 2 * value, 1 - gain) / 2;
+
+      }
+
+      function intRandom(max) {
+        return Math.floor(random() * (max + 1)) % (max + 1);
+      }
+
+      function pickRandom(array) {
+        return array[intRandom(array.length - 1)];
+      }
+
+      function isNumber(n) {
+        return !isNaN(parseFloat(n)) && isFinite(n);
+      }
+
+      function extractParameters(uri) {
+        var parameters = [];
+        var tokens = uri.split("?");
+        if(tokens.length > 1) {
+          tokens = tokens[1].split("&");
+          for(var i in tokens) {
+            var temp = tokens[i].split("=");
+            parameters[temp[0]] = temp[1];
+          }
+        }
+        return parameters;
+      }
+
+      var neighbourOffsets = [[-1, -1], [0, -1], [+1, -1], [+1, 0], [+1, +1], [0, +1], [-1, +1], [-1, 0]];
+
+      function getNeighbours(data, x, y) {
+        var neighbours = new Array();
+        for(var i = 0; i < 8; i++) {
+          try {
+            neighbours[i] = getPixel(data, x + neighbourOffsets[i][0], y + neighbourOffsets[i][1]);
+          }
+          catch (e) {}
+        }
+        return neighbours;
+      }
+
+      var palettes = {
+        arne: { label: "Arne's", background: 0, colours: [
+          [  0,   0,   0], [157, 157, 157], [255, 255, 255], [190,  38,  51],
+          [224, 111, 139], [ 73,  60,  43], [164, 100,  34], [235, 137,  49],
+          [247, 226, 107], [ 47,  72,  78], [ 68, 137,  26], [163, 206,  39],
+          [ 27,  38,  50], [  0,  87, 132], [ 49, 162, 242], [178, 220, 239],
+        ]},
+        dawnbringer: { label: "DawnBringer's", background: 0, colours: [
+          [ 20,  12,  28], [ 68,  36,  52], [ 48,  52, 109], [ 78,  74,  78],
+          [133,  76,  48], [ 52, 101,  36], [208,  70,  72], [117, 113,  97],
+          [ 89, 125, 206], [210, 125,  44], [133, 149, 161], [109, 170,  44],
+          [210, 170, 153], [109, 194, 202], [218, 212,  94], [222, 238, 214],
+        ]},
+        c64: { label: "Commodore 64", background: 0, colours: [
+          [  0,   0,   0], [ 62,  49, 162], [ 87,  66,   0], [140,  62,  52],
+          [ 84,  84,  84], [141,  71, 179], [144,  95,  37], [124, 112, 218],
+          [128, 128, 128], [104, 169,  65], [187, 119, 109], [122, 191, 199],
+          [171, 171, 171], [208, 220, 113], [172, 234, 136], [255, 255, 255],
+        ]},
+        ega: { label: "EGA", background: 0, colours: [
+          [  0,   0,   0], [  0,   0, 168], [  0, 168,   0], [  0, 168, 168],
+          [168,   0,   0], [168,   0, 168], [168,  84,   0], [168, 168, 168],
+          [ 84,  84,  84], [ 84,  84, 252], [ 84, 252,  84], [ 84, 252, 252],
+          [252,  84,  84], [252,  84, 252], [252, 252,  84], [252, 252, 252],
+        ]},
+        nes: { label: "NES", background: 63, colours: [
+          [255, 255, 255], [255, 255, 255], [199, 199, 199], [128, 128, 128],
+          [166, 252, 255], [ 15, 215, 255], [  0, 119, 255], [  0,  61, 166],
+          [179, 236, 255], [105, 162, 255], [ 33,  85, 255], [  0,  18, 176],
+          [218, 171, 235], [212, 128, 255], [130,  55, 250], [ 68,   0, 150],
+          [255, 168, 249], [255,  69, 243], [235,  47, 181], [161,   0,  94],
+          [255, 171, 179], [255,  97, 139], [255,  41,  80], [199,   0,  40],
+          [255, 210, 176], [255, 136,  51], [255,  34,   0], [186,   6,   0],
+          [255, 239, 166], [255, 156,  18], [214,  50,   0], [140,  23,   0],
+          [255, 247, 156], [250, 188,  32], [196,  98,   0], [ 92,  47,   0],
+          [215, 232, 149], [159, 227,  14], [ 53, 128,   0], [ 16,  69,   0],
+          [166, 237, 175], [ 43, 240,  53], [  5, 143,   0], [  5,  74,   0],
+          [162, 242, 218], [ 12, 240, 164], [  0, 138,  85], [  0,  71,  46],
+          [153, 255, 252], [  5, 251, 255], [  0, 153, 204], [  0,  65, 102],
+          [221, 221, 221], [ 94,  94,  94], [ 33,  33,  33], [  0,   0,   0],
+        ]},
+        gameboy: { label: "Gameboy", background: 0, colours: [
+          [ 57,  57,  41], [123, 115,  99], [181, 165, 107], [231, 214, 156],
+        ]},
+        greys: { label: "Greys", background: 0, colours: [
+          //[ 31,  31,  31], [ 63,  63,  63], [ 95,  95,  95], [127, 127, 127],
+          //[159, 159, 159], [191, 191, 191], [223, 223, 223], [255, 255, 255],
+          //[  0,   0,   0], [ 85,  85,  85], [170, 170, 170], [255, 255, 255],
+          [  0,   0,   0], [ 34,  34,  34], [ 73,  73,  73], [109, 109, 109],
+          [146, 146, 146], [182, 182, 182], [219, 219, 219], [255, 255, 255],
+        ]},
+        primaries: { label: "Primaries", background: 0, colours: [
+          [  0,   0,   0], [255,   0,   0], [  0, 255,   0], [  0,   0, 255],
+          [255, 255, 255],
+        ]},
+        secondaries: { label: "Secondaries", background: 0, colours: [
+          [  0,   0,   0], [255,   0,   0], [255, 255,   0], [  0, 255,   0],
+          [  0, 255, 255], [  0,   0, 255], [255,   0, 255], [255, 255, 255],
+        ]},
+        tertiaries: { label: "Tertiaries", background: 0, colours: [
+          [  0,   0,   0], [255,   0,   0], [255, 127,   0], [255, 255,   0],
+          [127, 255,   0], [  0, 255,   0], [  0, 255, 127], [  0, 255, 255],
+          [  0, 127, 255], [  0,   0, 255], [127,   0, 255], [255,   0, 255],
+          [255, 127, 127], [255, 255, 255],
+        ]},
+      };
+
+      function SpriteGenerator(id) {
+        this.id = id;
+        processParameters();
+        loadDefaults();
+        /*var string = "";
+        for (var key in values) {
+          string += key + " = " + values[key] + "\n";
+        }
+        alert(string);*/
+        buildGui("gui");
+        viewW = values["spacing"] + (values["tiles"] * (values["size"] * getScale() + values["spacing"]));
+        viewH = values["spacing"] + (values["tiles"] * (values["size"] * getScale() + values["spacing"]));
+        backgroundColour = rgbToRgba(palettes[values["pal"]].colours[values["bg"] % palettes[values["pal"]].colours.length]);
+
+        randomReseed(values["seed"]);
+
+        // setup canvas
+        this.canvas = document.getElementById(id);
+        this.canvas.width = viewW;
+        this.canvas.height = viewH;
+        this.canvas.style.width = viewW * values["zoom"];
+        this.canvas.style.height = viewH * values["zoom"];
+        try {
+          this.context = this.canvas.getContext("2d");
+        } catch (e) {
+          throw "Couldn't get canvas context:" + e.description;
+        }
+        this.context.mozImageSmoothingEnabled = false;
+
+        // setup tile
+        try {
+          this.tile = document.createElement("canvas");
+        } catch (e) {
+          error("Couldn't create tile canvas:" + e.description);
+        }
+        this.tile.height = this.tile.width = values["size"] * getScale();
+        try {
+          this.tileContext = this.tile.getContext("2d");
+        } catch (e) {
+          throw "Couldn't get tile context:" + e.description;
+        }
+        this.tileData = this.tileContext.createImageData(this.tile.width, this.tile.height);
+      }
+
+      SpriteGenerator.prototype.generateTile = function() {
+        var tile = this.context.createImageData(values["size"], values["size"]);
+
+        var doMirrorH = (random() <= values["mirrorh"]);
+        var doMirrorV = (random() <= values["mirrorv"]);
+        var xRange = tile.width / 2;
+        var yRange = tile.height / 2;
+        var xLimit = ( doMirrorH ? Math.ceil(xRange) : tile.width);
+        var yLimit = ( doMirrorV ? Math.ceil(yRange) : tile.height);
+        var spritePal = [];
+        for (var i = 0; i < values["colours"]; i++) {
+          spritePal[i] = pickRandom(palettes[values["pal"]].colours);
+        }
+        // draw unique
+        for(var y = 0; y < yLimit; y++) {
+          for(var x = 0; x < xLimit; x++) {
+            var falloffX = falloffs[values["falloff"]].func(1.0 - Math.abs((xRange - (x + 0.5)) / xRange));
+            var falloffY = falloffs[values["falloff"]].func(1.0 - Math.abs((yRange - (y + 0.5)) / yRange));
+            var prob = lerp(values["probmin"], values["probmax"], bias(values["bias"], gain(values["gain"], falloffX * falloffY)));
+            var rand = random();
+            if(rand <= prob)
+              putPixel(tile, x, y, rgbToRgba(pickRandom(spritePal)));
+            else
+              putPixel(tile, x, y, backgroundColour);
+          }
+        }
+        // do post
+        for(var y = 0; y < yLimit; y++) {
+          for(var x = 0; x < xLimit; x++) {
+            var neighbours = getNeighbours(tile, x, y);
+            var count = 0;
+            for(var i = 0; i < neighbours.length; i++) {
+              if(neighbours[i] != null && !coloursEqual(backgroundColour, neighbours[i]))
+                count++;
+            }
+            if(count == 1) {
+              // despur
+              if(random() <= values["despur"]) {
+                putPixel(tile, x, y, backgroundColour);
+              }
+            } else if(count == 0) {
+              // despeckle
+              if(random() <= values["despeckle"]) {
+                putPixel(tile, x, y, backgroundColour);
+              }
+            }
+          }
+        }
+        // copy mirrors
+        xLimit = ( doMirrorH ? Math.floor(xRange + 0.5) : tile.width);
+        yLimit = ( doMirrorV ? Math.floor(yRange + 0.5) : tile.height);
+        for(var y = 0; y < yLimit; y++) {
+          for(var x = 0; x < xLimit; x++) {
+            var colour = getPixel(tile, x, y);
+            if(doMirrorH)
+              putPixel(tile, tile.width - 1 - x, y, colour);
+            if(doMirrorV)
+              putPixel(tile, x, tile.height - 1 - y, colour);
+            if(doMirrorH && doMirrorV)
+              putPixel(tile, tile.width - 1 - x, tile.height - 1 - y, colour);
+          }
+        }
+        // scaling
+        var out = tile;
+        if (values["scaler0"] != "none") {
+          var scaler = scalers[values["scaler0"]];
+          var scaled = this.context.createImageData(out.width * scaler.factor, out.height * scaler.factor);
+          scale(out, scaled, scaler);
+          out = scaled;
+        }
+        if (values["scaler1"] != "none") {
+          var scaler = scalers[values["scaler1"]];
+          var scaled = this.context.createImageData(out.width * scaler.factor, out.height * scaler.factor);
+          scale(out, scaled, scaler);
+          out = scaled;
+        }
+        return out;
+      }
+
+      SpriteGenerator.prototype.draw = function() {
+        this.context.fillStyle = "rgb(" + backgroundColour[0] + ", " + backgroundColour[1] + ", " + backgroundColour[2] + ")";
+        this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        for(var y = 0; y < values["tiles"]; y++) {
+          for(var x = 0; x < values["tiles"]; x++) {
+            var tile = this.generateTile();
+            this.context.putImageData(tile, values["spacing"] + x * (values["size"] * getScale() + values["spacing"]), values["spacing"] + y * (values["size"] * getScale() + values["spacing"]));
+          }
+        }
+      }
+
+      function inArray(array, value) {
+        for (var i = 0; i < array.length; i++)
+          if (array[i] == value) return true;
+        return false;
+      }
+
+      function isDefined(variable) {
+        return !(typeof variable === "undefined");
+      }
+
+      function validateReal(value, property) {
+        var temp = new Number(value);
+        if (!isNumber(temp)) temp = property.default;
+        if (isDefined(property.min) && temp < property.min) temp = property.min;
+        else if (isDefined(property.max) && temp > property.max) temp = property.max;
+        return temp;
+      }
+
+      function validateInteger(value, property) {
+        return Math.round(validateReal(value, property));
+      }
+
+      function validateList(value, property) {
+        var temp = value.toLowerCase();
+        if (!isDefined(property.options[temp])) {
+          temp = property.default;
+        }
+        return temp;
+      }
+
+      function validateBool(value, property) {
+        //return !!value;
+        return value;
+      }
+
+      var propertyTypes = {
+        integer: { validator: validateReal },
+        real: { validator: validateReal },
+        list: { validator: validateList },
+        bool: { validator: validateBool },
+      };
+
+      var properties = {
+        seed: { type: "integer", label: "Seed", default: 0, description: "Seed value for PRNG." },
+        autoreseed: { type: "bool", label: "Auto", default: "true", description: "Automatically reseed the PRNG." },
+        autorandomize: { type: "bool", label: "Auto", default: "false", description: "Automatically randomize before generating." },
+        pal: { type: "list", label: "Palette", default: "arne", options: palettes, description: "Palette to draw colours from." },
+        colours: { type: "integer", label: "Colours", default: 3, min: 1, max: 16, description: "Number of colours per sprite." },
+        bg: { type: "integer", label: "Background",default: 0, min: 0, description: "Background colour index." },
+        size: { type: "integer", label: "Size", default: 16, min: 2, max: 64 },
+        spacing: { type: "integer", label: "Spacing", default: 4, min: 0, max: 64 },
+        tiles: { type: "integer", label: "Tiles", default: 16, min: 1, max: 64 },
+        zoom: { type: "integer", label: "Zoom", default: 1, min: 1, max: 16 },
+        scaler0: { type: "list", label: "Scaler 0", default: "eagle2x", options: scalers, description: "First sprite scaling method." },
+        scaler1: { type: "list", label: "Scaler 1", default: "none", options: scalers, description: "Second sprite scaling method." },
+        //iterations: { type: "integer", label: "Iterations", default: 1, min: 1, max: 4, description: "Sprite scaling iterations." },
+        falloff: { type: "list", label: "Falloff", default: "linear", options: falloffs, description: "Probability distribution function determining pixel placement across the sprite." },
+        probmin: { type: "real", label: "Min", default: 0.0, min: 0, max: 1, description: "Probability of pixel placement at the edge of the sprite." },
+        probmax: { type: "real", label: "Max", default: 1.0, min: 0, max: 1, description: "Probability of pixel placement at the centre of the sprite." },
+        //scale: { type: "real", label: "Scale", default: 1 },
+        //shift: { type: "real", label: "Shift", default: 0 },
+        bias: { type: "real", label: "Bias", default: 0.5, min: 0, max: 1, description: "Perlin's bias function. Bends value toward or away from the extremes." },
+        gain: { type: "real", label: "Gain", default: 0.5, min: 0, max: 1, description: "Perlin's gain function. Bends value toward or away from the centre." },
+        mirrorh: { type: "real", label: "Horizontal", default: 0.75, min: 0, max: 1, description: "Probability of the sprite being horizontally mirrored." },
+        mirrorv: { type: "real", label: "Vertical", default: 0.25, min: 0, max: 1, description: "Probability of the sprite being vertically mirrored." },
+        despeckle: { type: "real", label: "Despeckle", default: 0.875, min: 0, max: 1, description: "Probability of a single pixel being despeckled." },
+        despur: { type: "real", label: "Despur", default: 0.5, min: 0, max: 1, description: "Probability of a single jutting pixel being removed." },
+        controls: { type: "bool", label: "Controls", default: "true" },
+        advanced: { type: "bool", label: "Advanced", default: "false" },
+      };
+
+      var values = {};
+
+      var actions = {
+        save: { label: "Get image", func: save },
+        reset: { label: "Reset", func: reset },
+        randomize: { label: "Randomize", func: randomize },
+        submit: { label: "Generate", func: submit },
+        reseed: { label: "Reseed", func: reseed },
+      }
+
+      var controls = [
+//         { type: "fieldset", id: "canvas", label: "Canvas", children: [
+//           { type: "spritegen", id: "spritegen" },
+//         ]},
+        { type: "fieldset", id: "controls", children: [
+          { type: "fieldset", label: "Actions", children: [
+            { type: "button", id: "save" },
+            { type: "button", id: "reset" },
+            { type: "button", id: "randomize" },
+            { type: "property", id: "autorandomize" },
+            { type: "submit", id: "submit" },
+          ]},
+          { type: "fieldset", label: "Colour", children: [
+            { type: "property", id: "pal" },
+            { type: "property", id: "colours" },
+            { type: "property", id: "bg" },
+          ]},
+          { type: "fieldset", label: "Geometry", children: [
+            { type: "property", id: "size" },
+            { type: "property", id: "spacing" },
+            { type: "property", id: "tiles" },
+            { type: "property", id: "zoom" },
+            { type: "property", id: "scaler0" },
+            { type: "property", id: "scaler1" },
+            //{ type: "property", id: "iterations" },
+          ]},
+          { type: "fieldset", id: "advanced", children: [
+            { type: "fieldset", label: "Generation", children: [
+              { type: "property", id: "seed" },
+              { type: "button", id: "reseed" },
+              { type: "property", id: "autoreseed" },
+            ]},
+            { type: "fieldset", label: "Probability", children: [
+              { type: "property", id: "falloff" },
+              { type: "property", id: "probmin" },
+              { type: "property", id: "probmax" },
+              //{ type: "property", id: "scale" },
+              //{ type: "property", id: "shift" },
+              { type: "property", id: "bias" },
+              { type: "property", id: "gain" },
+            ]},
+            { type: "fieldset", label: "Mirror", children: [
+              { type: "property", id: "mirrorh" },
+              { type: "property", id: "mirrorv" },
+            ]},
+            { type: "fieldset", label: "Post", children: [
+              { type: "property", id: "despeckle" },
+              { type: "property", id: "despur" },
+            ]},
+          ]},
+        ]},
+      ];
+
+      function buildControls(parent, controls) {
+        var i = 1;
+        for (var i in controls) {
+          var control = controls[i]
+          var property, id;
+          if (isDefined(control.id)) {
+            id = control.id;
+            try {
+              property = properties[id];
+            }
+            catch (e) {
+              throw "No property for id:" + e.description;
+            }
+          }
+          switch (control.type) {
+            case "fieldset":
+              var div = document.createElement("div");
+              parent.appendChild(div);
+              var labelText;
+              var label = document.createElement("label");
+              if (isDefined(id)) {
+                var hidden = document.createElement("input");
+                hidden.type = "hidden";
+                hidden.name = id;
+                hidden.value = false;
+                div.appendChild(hidden);
+                labelText = property.label;
+                var checkbox = document.createElement("input");
+                checkbox.type = "checkbox";
+                checkbox.id = checkbox.name = control.id;
+                checkbox.value = true;
+                if (values[id] == "true") checkbox.checked = "on";
+                label.htmlFor = checkbox.id;
+                div.appendChild(checkbox);
+              }
+              else {
+                labelText = control.label;
+              }
+              label.appendChild(document.createTextNode(labelText));
+              div.appendChild(label);
+              div.appendChild(document.createElement("br"));
+              var fieldset = document.createElement("fieldset");
+              buildControls(fieldset, control.children);
+              div.appendChild(fieldset);
+            break;
+            case "submit":
+            case "button":
+              var button = document.createElement("button");
+              if (control.type == "submit") {
+                button.type = "submit";
+              }
+              else {
+                button.type = "button";
+              }
+              button.onclick = actions[id].func;
+              button.appendChild(document.createTextNode(actions[id].label));
+              parent.appendChild(button);
+            break;
+            case "property":
+              var element, label;
+              if (!isDefined(property)) throw "Property does not exist: " + id;
+              switch (property.type) {
+                case "integer":
+                case "real":
+                  element = document.createElement("input");
+                  if (property.type == "real") {
+                    if (isDefined(property.min) && isDefined(property.max))
+                      element.type = "range";
+                    else
+                      element.type = "number";
+                    element.step = isDefined(property.step) ? property.step : 0.05;
+                  }
+                  else {
+                    element.type = "number";
+                    element.step = isDefined(property.step) ? property.step : 1;
+                  }
+                  if (isDefined(property.min)) element.min = property.min;
+                  if (isDefined(property.max)) element.max = property.max;
+                  element.id = element.name = id;
+                  element.value = values[id];
+                break;
+                case "bool":
+                  var hidden = document.createElement("input");
+                  hidden.type = "hidden";
+                  hidden.name = id;
+                  hidden.value = false;
+                  parent.appendChild(hidden);
+                  element = document.createElement("input");
+                  element.type = "checkbox";
+                  element.id = element.name = id;
+                  element.value = true;
+                  if (values[id] == "true") element.checked = "on";
+                break;
+                case "list":
+                  element = document.createElement("select");
+                  element.id = id;
+                  element.name = id;
+                  for (var opt in property.options) {
+                    var option = document.createElement("option");
+                    option.value = opt;
+                    option.appendChild(document.createTextNode(property.options[opt].label));
+                    element.appendChild(option);
+                  }
+                  element.value = values[id];
+                break;
+              }
+              //if (isDefined(element) && isDefined(property.description)) element.title = label.title = property.description;
+              label = document.createElement("label");
+              label.htmlFor = id;
+              if (isDefined(element) && isDefined(property.description)) {
+                label.className = "tooltip";
+                var span = document.createElement("span");
+                span.appendChild(document.createTextNode(property.description));
+                label.appendChild(span);
+              }
+              label.appendChild(document.createTextNode(property.label));
+              parent.appendChild(label);
+              parent.appendChild(element);
+            break;
+          }
+        }
+      }
+
+      function buildGui(element) {
+        var form = document.createElement("form");
+        form.id = "form";
+        document.getElementById(element).appendChild(form);
+        form.method = "get";
+        buildControls(form, controls);
+      }
+
+      function processParameters() {
+        var parameters = extractParameters(window.location.href);
+        var colour;
+        for(var key in parameters) {
+          key = key.toLowerCase();
+          if (isDefined(properties[key])) {
+            var type = propertyTypes[properties[key].type];
+            values[key] = type.validator(parameters[key], properties[key]);
+          }
+        }
+      }
+
+      function loadDefaults() {
+        for(var key in properties) {
+          if (!isDefined(values[key])) {
+            values[key] = properties[key].default;
+          }
+        }
+      }
+
+      function main() {
+        spriteGen = new SpriteGenerator("SpriteGenerator");
+        spriteGen.draw();
+      }
+
+      function reset() {
+        for(var key in properties) {
+          values[key] = properties[key].default;
+          document.getElementById(key).value = values[key];
+        }
+      }
+
+      function setProperty(key, value) {
+        document.getElementById(key).value = values[key] = value;
+      }
+
+      function randomize() {
+        var ramdom_properties = ["probmin", "probmax", "bias", "gain", "mirrorh", "mirrorv", "despeckle", "despur"];
+        for(var i = 0; i < ramdom_properties.length; i++) {
+          var key = ramdom_properties[i];
+          if ((properties[key].type == "integer" || properties[key].type == "real") && isDefined(properties[key].min) && isDefined(properties[key].max)) {
+            var value;
+            if (properties[key].type == "integer")
+              value = intRandom(properties[key].max - properties[key].min) + properties[key].min;
+            else
+              value = random() * (properties[key].max - properties[key].min) + properties[key].min;
+            setProperty(key, value);
+          }
+        }
+        //reseed();
+      }
+
+      function reseed() {
+        setProperty("seed", Date.now());
+      }
+
+      function submit() {
+        if (document.getElementById("autorandomize").checked == true) randomize();
+        if (document.getElementById("autoreseed").checked == true) reseed();
+        for(var key in properties) {
+          var element = document.getElementById(key);
+          if (!element) throw "Element id does not exist: " + key;
+          else {
+            var type = propertyTypes[properties[key].type];
+            values[key] = type.validator(element.value, properties[key]);
+          }
+        }
+      }
+
+      function save() {
+        window.open(spriteGen.canvas.toDataURL());
+      }
+    </script>
+    <style type="text/css">
+      .tooltip {
+        border-bottom: 0.125em dotted;
+        outline: none;
+        cursor: help;
+        position: relative;
+      }
+      .tooltip span {
+        display: none;
+        color: rgb(0, 0, 0);
+        background-color: rgb(255, 255, 191);
+        font-variant: normal;
+        border-radius: 0.25em;
+        border: 0.125em solid rgb(0, 0, 0);
+        padding: 0.5em;
+        text-align: left;
+      }
+      .tooltip:hover span {
+        position: absolute; left: 0; top: 2em; z-index: 99;
+        display: block;
+        margin-left: 0;
+/*         width: 12em; */
+      }
+      body, input, button, textarea {
+        font-family: "Lucida Sans Unicode", Lucida, sans-serif;
+      }
+      a {
+        font-variant: small-caps;
+        border: 0.25em;
+        border-radius: 0.25em;
+      }
+      a:visited { color: rgb(102, 102, 204); }
+      a:link { color: rgb(102, 102, 204); }
+      a:focus, a:hover {
+        color: rgb(204, 204, 255);
+        text-shadow: 0 0 0.25em rgb(204, 204, 25), 0 0 0.125em rgb(255, 255, 255);
+        background-color: rgb(77, 51, 128);
+        box-shadow: 0 0 0.25em rgb(77, 51, 128);
+      }
+      a:active { color: rgb(255, 255, 255); }
+      img {
+        /*border-style: none;*/
+        border: 0.25em;
+        border-radius: 0.25em;
+      }
+      canvas, img[src$=".gif"], img[src$=".png"] {
+        image-rendering: -moz-crisp-edges;
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+        -ms-interpolation-mode: nearest-neighbor;
+        border: 0;
+      }
+      body {
+        color: rgb(204, 204, 255);
+        background-color: rgb(26, 0, 77);
+      }
+      h1, h2, h3 {
+        color: rgb(255, 255, 255);
+        font-variant: small-caps;
+        text-align: left;
+        text-shadow: 0 0 0.25em rgb(0, 0, 0), 0 0 0.125em rgb(0, 0, 0);
+        padding: 0;
+        margin: 0;
+      }
+      h1 {
+        background-color: rgb(77, 51, 128);
+        box-shadow: 0 0 0.25em rgb(77, 51, 128);
+        border-radius: 0.25em;
+      }
+      h2 {
+        background-color: rgb(51, 26, 102);
+        box-shadow: 0 0 0.125em rgb(51, 26, 102);
+        border-radius: 0.25em;
+      }
+      .panel, form, fieldset, legend, input, button, label, textarea, select, option {
+        font-size: small;
+        padding: 0;
+        margin: 0;
+        display: inline-block;
+        vertical-align:text-top;
+      }
+      option {
+        display: block;
+      }
+      select {
+/*         width: 6em; */
+      }
+      input {
+/*         width: 6em; */
+      }
+      input[type="range"] {
+/*         width: 6em; */
+      }
+      .panel, form, fieldset {
+        margin: 0.25em;
+        padding: 0.25em;
+        border-radius: 0.5em;
+        display: inline-block;
+        background-color: rgb(51, 26, 102);
+        border-left: 0.125em solid rgb(77, 51, 128);
+        border-top:  0.125em solid rgb(77, 51, 128);
+        border-right:  0.125em solid rgb(26, 0, 77);
+        border-bottom:  0.125em solid rgb(26, 0, 77);
+        box-shadow: 0 0.25em 0.25em rgba(0, 0, 0, 0.5);
+        background-image: -moz-linear-gradient(top, rgb(51, 26, 102), rgb(26, 0, 77));
+        background-image: -webkit-linear-gradient(top, rgb(51, 26, 102), rgb(26, 0, 77));
+      }
+      /*.panel:nth-child(odd), form:nth-child(odd), fieldset:nth-child(odd) {
+        background-image: -moz-linear-gradient(top, rgb(77, 51, 128), rgb(51, 26, 102));
+        background-image: -webkit-linear-gradient(top, rgb(77, 51, 128), rgb(51, 26, 102));
+      }
+      .panel:nth-child(odd):nth-child(even), form:nth-child(odd):nth-child(even), fieldset:nth-child(odd):nth-child(even) {
+        background-image: -moz-linear-gradient(top, rgb(51, 26, 102), rgb(26, 0, 77));
+        background-image: -webkit-linear-gradient(top, rgb(51, 26, 102), rgb(26, 0, 77));
+      }*/
+      legend {
+        border: 0;
+        border-radius: 0.5em;
+        display: block;
+        background-color: rgb(51, 26, 102);
+        border-left: 0.125em solid rgb(77, 51, 128);
+        border-top:  0.125em solid rgb(77, 51, 128);
+        border-right:  0.125em solid rgb(26, 0, 77);
+        border-bottom:  0.125em solid rgb(26, 0, 77);
+        box-shadow: 0 0.25em 0.25em rgba(0, 0, 0, 0.5);
+        font-variant: small-caps;
+      }
+      input[type="submit"], input[type="button"], button {
+        margin: 0.25em;
+        border-radius: 0.25em;
+        color: rgb(204, 204, 255);
+        background-color: rgb(51, 26, 102);
+        border-left: 0.25em solid rgb(77, 51, 128);
+        border-top:  0.25em solid rgb(77, 51, 128);
+        border-right:  0.25em solid rgb(26, 0, 77);
+        border-bottom:  0.25em solid rgb(26, 0, 77);
+        box-shadow: -0.0625em -0.0625em 0.0625em rgb(26, 0, 77), 0.0625em 0.0625em 0.0625em rgb(77, 51, 128);
+        font-variant: small-caps;
+      }
+      /*button[disabled] {
+        background-color: rgb(255, 26, 102);
+      }*/
+      input[type="submit"]:hover, input[type="button"]:hover, button:hover {
+        color: rgb(255, 255, 255);
+        text-shadow: 0 0 0.25em rgb(255, 255, 255), 0 0 0.125em rgb(255, 255, 255);
+        box-shadow: 0 0 0.125em 0.125em rgb(255, 255, 255);
+      }
+      input[type="submit"]:focus, input[type="button"]:focus, button:focus {
+        box-shadow: 0 0 0.125em 0.125em rgb(255, 255, 255);
+      }
+      input[type="submit"]:active, input[type="button"]:active, button:active {
+        background-color: rgb(0, 0, 0);
+        border-left:  0.25em solid rgb(26, 0, 77);
+        border-top:  0.25em solid rgb(26, 0, 77);
+        border-right: 0.25em solid rgb(77, 51, 128);
+        border-bottom:  0.25em solid rgb(77, 51, 128);
+        box-shadow: 0 0 0.125em 0.125em rgb(255, 255, 255);
+      }
+      input[type="text"], input[type="number"], input[type="range"], input[type="password"], input[type="checkbox"], textarea, select, option {
+        border: 0;
+        border-radius: 0.25em;
+        color: rgb(255, 255, 255);
+        background-color: rgb(0, 0, 0);
+        border-left:  0.125em solid rgb(26, 0, 77);
+        border-top:  0.125em solid rgb(26, 0, 77);
+        border-right: 0.125em solid rgb(77, 51, 128);
+        border-bottom:  0.125em solid rgb(77, 51, 128);
+        font-variant: small-caps;
+      }
+      input[type="text"]:focus, input[type="number"]:focus, input[type="range"]:focus, input[type="password"]:focus, input[type="checkbox"]:focus, textarea:focus, select:focus, option:focus {
+        box-shadow: inset  0 0 0.125em 0.125em rgb(255, 255, 255);
+        box-shadow: 0 0 0.125em 0.125em rgb(255, 255, 255);
+      }
+      /*input[type="checkbox"] {
+        display: none;
+      }
+      input[type="checkbox"]:checked {
+        display: inline-block;
+      }*/
+      div > input[type="checkbox"] ~ fieldset {
+        display: none;
+      }
+      div > input[type="checkbox"]:checked ~ fieldset {
+        display: inline-block;
+      }
+      /*input[type="checkbox"] {
+        width: 1em;
+        height: 1em;
+        display: inline-block;
+      }*/
+      label {
+        text-align: right;
+        font-variant: small-caps;
+        margin-left: 1em;
+      }
+      label:after {
+        content: ":";
+      }
+      pre {
+        font-family: "Courier New", Courier, monospace;
+      }
+      html, body {
+        border: 0;
+        padding: 0;
+        margin: 0;
+      }
+      #docs {
+        text-align: left;
+        font-size: small;
+        display: inline-block;
+      }
+      #canvas {
+        float: left;
+        display: inline-block;
+        /*display: table-cell;*/
+      }
+      #gui {
+        display: inline-block;
+        /*display: table-cell;*/
+      }
+    </style>
+    <title>Sprite Generator</title>
+  </head>
+  <body onload="main();">
+    <div id="canvas" class="panel">
+      <h1>Sprite Generator</h1>
+      <canvas id="SpriteGenerator">
+        No canvas? Sucks to be you.
+      </canvas>
+    </div>
+    <div id="gui" class="panel">
+      <h1>Controls</h1>
+    </div>
+  </body>
+</html>
