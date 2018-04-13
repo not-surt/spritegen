@@ -23,6 +23,7 @@ as the name is changed.
 <!--
 CREDITS
 -------
+eisha - diagonal mirroring cose
 vk - palettes, scale2x code
 surt - misc
 Arne - Arne's 16 Color Palette
@@ -559,6 +560,8 @@ Octave: render at increasind scale leaving some of the lower scale behind.
 
         var doMirrorH = (random() <= values["mirrorh"]);
         var doMirrorV = (random() <= values["mirrorv"]);
+        var doMirrorD1 = (random() <= values["mirrord1"]);
+        var doMirrorD2 = (random() <= values["mirrord2"]);
         var xRange = tile.width / 2;
         var yRange = tile.height / 2;
         var xLimit = ( doMirrorH ? Math.ceil(xRange) : tile.width);
@@ -614,6 +617,18 @@ Octave: render at increasind scale leaving some of the lower scale behind.
               putPixel(tile, x, tile.height - 1 - y, colour);
             if(doMirrorH && doMirrorV)
               putPixel(tile, tile.width - 1 - x, tile.height - 1 - y, colour);
+          }
+        }
+        //copy diagonal mirrors
+        xLimit = tile.width;
+        yLimit = tile.height;
+        for (var y = 0; y < yLimit; y++) {
+          for (var x = 0; x < xLimit; x++) {
+            var colour = getPixel(tile, x, y);
+            if(doMirrorD1) //top left to bottom right
+              putPixel(tile, y, x, colour);
+            if(doMirrorD2) //top right to bottom left
+              putPixel(tile, tile.width - 1 - y, tile.height - 1 - x, colour);
           }
         }
         // scaling
@@ -709,6 +724,8 @@ Octave: render at increasind scale leaving some of the lower scale behind.
         gain: { type: "real", label: "Gain", default: 0.5, min: 0, max: 1, description: "Perlin's gain function. Bends value toward or away from the centre." },
         mirrorh: { type: "real", label: "Horizontal", default: 0.75, min: 0, max: 1, description: "Probability of the sprite being horizontally mirrored." },
         mirrorv: { type: "real", label: "Vertical", default: 0.25, min: 0, max: 1, description: "Probability of the sprite being vertically mirrored." },
+        mirrord1: { type: "real", label: "Diagonal \u2572", default: 0.25, min: 0, max: 1, description: "Probability of the sprite being diagonally mirrored, top left to bottom right." },
+        mirrord2: { type: "real", label: "Diagonal \u2571", default: 0.25, min: 0, max: 1, description: "Probability of the sprite being diagonally mirrored, top right to bottom left." },
         despeckle: { type: "real", label: "Despeckle", default: 0.875, min: 0, max: 1, description: "Probability of a single pixel being despeckled." },
         despur: { type: "real", label: "Despur", default: 0.5, min: 0, max: 1, description: "Probability of a single jutting pixel being removed." },
         controls: { type: "bool", label: "Controls", default: "true" },
@@ -769,6 +786,8 @@ Octave: render at increasind scale leaving some of the lower scale behind.
             { type: "fieldset", label: "Mirror", children: [
               { type: "property", id: "mirrorh" },
               { type: "property", id: "mirrorv" },
+              { type: "property", id: "mirrord1" },
+              { type: "property", id: "mirrord2" },            
             ]},
             { type: "fieldset", label: "Post", children: [
               { type: "property", id: "despeckle" },
