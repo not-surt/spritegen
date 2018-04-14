@@ -531,8 +531,8 @@ Octave: render at increasind scale leaving some of the lower scale behind.
         this.canvas = document.getElementById(id);
         this.canvas.width = viewW;
         this.canvas.height = viewH;
-        this.canvas.style.width = viewW * values["zoom"];
-        this.canvas.style.height = viewH * values["zoom"];
+        this.canvas.style.width = viewW * values["zoom"] + "px";
+        this.canvas.style.height = viewH * values["zoom"] + "px";
         try {
           this.context = this.canvas.getContext("2d");
         } catch (e) {
